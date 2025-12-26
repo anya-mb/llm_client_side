@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Story Generator (Client-Side LLM)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea, input { width: 100%; margin: 5px 0; }
+    #output { height: 300px; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; }
+    button { padding: 10px 15px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<h1>📝 Story Generator (Client-Side LLM)</h1>
+
+<textarea id="prompt" rows="3" placeholder="Enter your story prompt..."></textarea>
+<button id="generateBtn">Generate Story</button>
+
+<h2>Output</h2>
+<div id="output"></div>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
