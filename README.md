@@ -1,132 +1,205 @@
-# Client-Side Story Generator
+# Chat with LLM - 100% Private
 
-A fully client-side AI story generator that runs entirely in your browser using WebLLM. No server, no API keys, no data leaves your machine.
+A fully client-side AI chat application that runs language models entirely in your browser. Your conversations never leave your device - all AI inference happens locally using WebGPU.
 
 ## Features
 
-### Core Capabilities
-- **100% Client-Side Execution** - Powered by WebLLM and WebGPU, runs completely in your browser
-- **Privacy-First** - All processing happens locally; your prompts never leave your device
-- **Real-Time Streaming** - Watch stories generate token-by-token as the AI creates them
-- **No API Keys Required** - No external services, no costs, no rate limits
-- **Offline Capable** - Once the model is downloaded, works without internet connection
+### Privacy & Security
+- **100% Client-Side AI** - Models run entirely in your browser via WebLLM
+- **No Data to Servers** - Your prompts and conversations stay on your device
+- **Anonymous Authentication** - No email or personal info required
+- **Secure Cloud Sync** - Chat history synced via Firebase with user-only access
 
-### Technical Highlights
-- **Qwen3-0.6B Model** - Efficient quantized model optimized for browser inference
-- **Progress Tracking** - Visual feedback during model download and compilation
-- **Optimized Performance** - Uses WebGPU acceleration for fast inference
-- **Simple Interface** - Clean, minimal UI focused on the generation experience
+### AI Capabilities
+- **6 Model Options** - From fast 0.6B to powerful 3.8B parameter models
+- **Smart Context Management** - Automatic summarization prevents context overflow
+- **Streaming Responses** - Watch AI generate responses in real-time
+- **Model Switching** - Change models on the fly
+
+### User Experience
+- **Chat History** - All conversations saved and synced
+- **Multiple Chats** - Create and manage separate conversations
+- **Dark/Light Mode** - Theme toggle for comfortable viewing
+- **Responsive Design** - Works on desktop and mobile
+- **Export Function** - Download your chat history as JSON
+
+## Available Models
+
+| Model | Size | Speed | Quality | Best For |
+|-------|------|-------|---------|----------|
+| Qwen3 0.6B | 0.6B | Fastest | Good | Quick responses |
+| Llama 3.2 1B | 1B | Very Fast | Better | Balanced |
+| SmolLM2 1.7B | 1.7B | Fast | Very Good | Code & Math |
+| Gemma 2 2B | 2B | Moderate | Very Good | Factual Q&A |
+| Llama 3.2 3B | 3B | Moderate | Excellent | Complex tasks |
+| Phi-4 Mini | 3.8B | Slower | Excellent | Reasoning |
+
+See [MODELS.md](MODELS.md) for detailed model information.
+
+## Quick Start
+
+### Prerequisites
+- Modern browser with WebGPU support (Chrome 113+, Edge 113+, Safari 17.4+)
+- Firebase project (for cloud sync)
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd llm_in_browser
+   ```
+
+2. **Configure Firebase**
+
+   Edit `public/firebase-config.js` and replace the placeholder values with your Firebase project config:
+   ```javascript
+   const firebaseConfig = {
+     apiKey: "YOUR_API_KEY",
+     authDomain: "ai-chat-in-your-tab.firebaseapp.com",
+     projectId: "ai-chat-in-your-tab",
+     storageBucket: "ai-chat-in-your-tab.firebasestorage.app",
+     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+     appId: "YOUR_APP_ID"
+   };
+   ```
+
+3. **Enable Firebase Services**
+
+   In Firebase Console:
+   - Enable **Authentication** > **Anonymous** sign-in
+   - Enable **Cloud Firestore**
+   - Deploy security rules: `firebase deploy --only firestore:rules`
+
+4. **Local Development**
+   ```bash
+   # Option 1: Python
+   cd public && python -m http.server 8000
+
+   # Option 2: Node.js
+   npx serve public
+
+   # Option 3: Firebase Emulator
+   firebase emulators:start
+   ```
+
+5. **Open in browser** at `http://localhost:8000`
+
+### Deploy to Firebase Hosting
+
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Deploy
+firebase deploy
+```
+
+## Project Structure
+
+```
+llm_in_browser/
+├── public/                 # Static files for hosting
+│   ├── index.html         # Main HTML
+│   ├── app.js             # Main application logic
+│   ├── styles.css         # UI styles
+│   ├── memory.js          # Context management
+│   ├── firebase-config.js # Firebase initialization
+│   └── db.js              # Firestore operations
+├── firebase.json          # Firebase hosting config
+├── firestore.rules        # Security rules
+├── .firebaserc            # Project alias
+├── MODELS.md              # Model documentation
+└── README.md              # This file
+```
 
 ## How It Works
 
-1. **Model Loading**: On first use, the Qwen3-0.6B model (quantized to 4-bit) is downloaded and compiled for WebGPU
-2. **Browser Inference**: Uses MLC-AI's WebLLM engine to run the LLM directly in your browser
-3. **Streaming Output**: Responses stream token-by-token using the OpenAI-compatible API
-4. **Persistent Cache**: Model stays cached in browser storage for instant future use
+### AI Inference
+1. On first use, the selected model is downloaded and compiled for WebGPU
+2. All inference runs in a Web Worker to keep the UI responsive
+3. Responses stream token-by-token for real-time feedback
+4. Models are cached in IndexedDB for fast subsequent loads
 
-## Usage
+### Context Management
+1. Token usage is estimated for each conversation
+2. When approaching 70% of the model's context window:
+   - Older messages are summarized using the AI
+   - Summary is preserved as context
+   - Recent messages are kept verbatim
+3. This allows unlimited conversation length
 
-### Quick Start
+### Data Storage
+- **Local**: Messages cached in browser during session
+- **Cloud**: Synced to Firestore under user's anonymous ID
+- **Security**: Firestore rules ensure users only access their own data
 
-1. **Clone or download** this repository
-2. **Serve the files** using any local server:
-   ```bash
-   # Option 1: Python
-   python -m http.server 8000
+## Configuration
 
-   # Option 2: Node.js
-   npx serve
+### Firebase Project
+- Project ID: `ai-chat-in-your-tab`
+- Required services: Authentication, Firestore, Hosting
 
-   # Option 3: VS Code Live Server extension
-   ```
-3. **Open in browser** at `http://localhost:8000`
-4. **Wait for model download** (first time only - ~300-500MB)
-5. **Enter a prompt** and click "Generate Story"
+### Security Rules
+The included `firestore.rules` ensures:
+- Users can only read/write their own data
+- All other access is denied
+- Rules are enforced server-side
 
-### Example Prompts
-- "Write a short story about a robot learning to paint"
-- "Create a mystery involving a missing book in a library"
-- "Tell me a tale about a chef who discovers magic ingredients"
+## Browser Requirements
 
-## Technical Details
+| Browser | Minimum Version |
+|---------|----------------|
+| Chrome | 113+ |
+| Edge | 113+ |
+| Safari | 17.4+ (macOS 14.4+) |
+| Firefox | 121+ (with flags) |
 
-### Model Configuration
-- **Model**: Qwen3-0.6B-q4f16_1-MLC
-- **Quantization**: 4-bit weights, 16-bit activations
-- **Temperature**: 0.7 (balanced creativity)
-- **Max Tokens**: 512 per generation
-- **Streaming**: Enabled for real-time output
-
-### Code Structure
-```
-├── index.html    # UI interface
-├── app.js        # WebLLM integration and generation logic
-└── README.md     # Documentation
-```
-
-### Key Functions
-- `initEngine()` - Initializes MLC engine with progress callbacks (app.js:10)
-- `generateStory()` - Handles prompt submission and streaming (app.js:42)
-- Progress tracking via `initProgressCallback` (app.js:25-28)
-
-## Requirements
-
-### Browser Support
-Requires a modern browser with **WebGPU support**:
-- Chrome/Edge 113+
-- Firefox 117+ (with flags enabled)
-- Safari 17.4+ (macOS 14.4+)
-
-### Hardware
-- **GPU**: Discrete GPU recommended for best performance
-- **RAM**: At least 4GB available
-- **Storage**: ~500MB for model cache
-
-### Check WebGPU Support
-Visit [webgpureport.org](https://webgpureport.org/) to verify your browser supports WebGPU.
-
-## Model Options
-
-The code includes commented alternatives (app.js:20):
-```javascript
-// Current: Qwen3-0.6B-q4f16_1-MLC (fastest, good quality)
-// Alternative: Llama-3.2-3B-Instruct-q4f16_1-MLC (larger, better quality)
-// Alternative: Qwen2.5-1.5B-Instruct-q4f16_1-MLC (balanced)
-```
-
-To switch models, uncomment the desired model ID in app.js:20.
-
-## Performance
-
-- **First Load**: 30-120 seconds (model download + compilation)
-- **Subsequent Loads**: 5-10 seconds (cached model)
-- **Generation Speed**: ~10-30 tokens/second (depends on GPU)
+Check WebGPU support: [webgpureport.org](https://webgpureport.org)
 
 ## Troubleshooting
 
-### Model fails to load
-- Check browser console for detailed error messages
-- Verify WebGPU support in your browser
-- Ensure sufficient disk space for model cache
-- Try clearing browser cache and reloading
+### Model won't load
+- Verify WebGPU is supported in your browser
+- Check console for detailed error messages
+- Ensure enough disk space (~500MB-2GB per model)
+- Try a smaller model first
 
-### Slow generation
+### Slow performance
+- Use a smaller model (Qwen3 0.6B recommended for older hardware)
 - Close other GPU-intensive applications
-- Try a smaller model variant
-- Check GPU isn't thermal throttling
+- Check GPU temperature for throttling
 
-### Out of memory errors
-- Use a smaller model (Qwen3-0.6B recommended for most systems)
-- Close other browser tabs
-- Increase browser memory limits if possible
+### Firebase errors
+- Verify Firebase config values are correct
+- Check that Anonymous Auth is enabled
+- Ensure Firestore is created in your project
+- Deploy security rules with `firebase deploy --only firestore:rules`
+
+## Development
+
+### Local Testing with Emulators
+```bash
+firebase emulators:start
+```
+This runs local Auth and Firestore emulators.
+
+### Adding New Models
+1. Check model availability at [MLC-AI Models](https://huggingface.co/mlc-ai)
+2. Add model ID to `AVAILABLE_MODELS` in `app.js`
+3. Add context limit to `MODEL_CONTEXT_LIMITS` in `memory.js`
+4. Update `MODELS.md` documentation
 
 ## Credits
 
 Built with:
 - [WebLLM](https://github.com/mlc-ai/web-llm) - Browser-based LLM inference
-- [MLC-AI](https://mlc.ai/) - Machine Learning Compilation framework
-- [Qwen Models](https://github.com/QwenLM/Qwen) - Alibaba's Qwen language models
+- [Firebase](https://firebase.google.com) - Authentication, database, hosting
+- [MLC-AI](https://mlc.ai/) - Machine learning compilation
 
 ## License
 
-This project is open source. Model licenses apply from their respective providers.
+This project is open source. Model licenses apply from their respective providers (Meta, Google, Microsoft, Alibaba, Hugging Face).
