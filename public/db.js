@@ -34,6 +34,30 @@ export function escapeHtml(text) {
 }
 
 /**
+ * Generate a custom message ID in format: YYYYMMDDHHMMSS-XX
+ * Model name is stored inside the message document as `modelId` field
+ * @returns {string} Custom message ID
+ */
+export function generateMessageId() {
+  const now = new Date();
+
+  // Format: YYYYMMDDHHMMSS
+  const timestamp = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0');
+
+  // Generate 2 random letters
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const randomLetters = letters.charAt(Math.floor(Math.random() * 26)) +
+    letters.charAt(Math.floor(Math.random() * 26));
+
+  return `${timestamp}-${randomLetters}`;
+}
+
+/**
  * Create or update user profile
  * @returns {Promise<void>}
  */
@@ -181,19 +205,25 @@ export async function deleteChat(chatId) {
  * @param {string} chatId - Chat ID
  * @param {string} role - Message role ('user' or 'assistant')
  * @param {string} content - Message content
+ * @param {string} modelId - The LLM model ID used
  * @returns {Promise<string>} Message ID
  */
-export async function addMessage(chatId, role, content) {
+export async function addMessage(chatId, role, content, modelId = 'unknown') {
   const userId = getUserId();
   if (!userId) throw new Error('User not authenticated');
 
   const db = getDb();
-  const messagesRef = collection(db, 'users', userId, 'chats', chatId, 'messages');
 
-  const messageDoc = await addDoc(messagesRef, {
+  // Generate custom message ID (format: YYYYMMDDHHMMSS-XX)
+  const messageId = generateMessageId();
+  const messageRef = doc(db, 'users', userId, 'chats', chatId, 'messages', messageId);
+
+  await setDoc(messageRef, {
     role,
     content,
-    timestamp: serverTimestamp()
+    modelId,
+    timestamp: serverTimestamp(),
+    feedback: null // null = no feedback, 'up' = thumbs up, 'down' = thumbs down
   });
 
   // Update chat's updatedAt and message count
@@ -206,7 +236,28 @@ export async function addMessage(chatId, role, content) {
     messageCount: currentCount + 1
   });
 
-  return messageDoc.id;
+  return messageId;
+}
+
+/**
+ * Update message feedback (thumbs up/down)
+ * @param {string} chatId - Chat ID
+ * @param {string} messageId - Message ID
+ * @param {string|null} feedback - 'up', 'down', or null to clear
+ * @returns {Promise<void>}
+ */
+export async function updateMessageFeedback(chatId, messageId, feedback) {
+  const userId = getUserId();
+  if (!userId) throw new Error('User not authenticated');
+
+  const db = getDb();
+  const messageRef = doc(db, 'users', userId, 'chats', chatId, 'messages', messageId);
+
+  await updateDoc(messageRef, {
+    feedback: feedback
+  });
+
+  console.log('[DB] Updated feedback for message:', messageId, feedback);
 }
 
 /**
@@ -226,12 +277,14 @@ export async function getMessages(chatId, maxMessages = 100) {
   const snapshot = await getDocs(q);
   const messages = [];
 
-  snapshot.forEach((doc) => {
-    const data = doc.data();
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
     messages.push({
-      id: doc.id,
+      id: docSnap.id,
       role: data.role,
       content: data.content,
+      modelId: data.modelId || null,
+      feedback: data.feedback || null,
       timestamp: data.timestamp?.toDate?.() || new Date()
     });
   });
@@ -258,12 +311,14 @@ export function subscribeToMessages(chatId, callback) {
 
   return onSnapshot(q, (snapshot) => {
     const messages = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       messages.push({
-        id: doc.id,
+        id: docSnap.id,
         role: data.role,
         content: data.content,
+        modelId: data.modelId || null,
+        feedback: data.feedback || null,
         timestamp: data.timestamp?.toDate?.() || new Date()
       });
     });

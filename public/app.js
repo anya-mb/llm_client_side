@@ -1,6 +1,6 @@
 /**
  * Main Application Module
- * Chat with LLM - 100% Private
+ * Chat with LLM
  * Handles UI, LLM inference, and state management
  */
 
@@ -24,7 +24,8 @@ import {
   subscribeToChats,
   deleteAllUserData,
   generateChatTitle,
-  escapeHtml
+  escapeHtml,
+  updateMessageFeedback
 } from './db.js';
 import {
   createContextManager,
@@ -331,7 +332,7 @@ async function sendMessage() {
   scrollToBottom();
 
   // Save to Firestore
-  await addMessage(currentChatId, 'user', text);
+  await addMessage(currentChatId, 'user', text, currentModelId);
 
   // Update chat title if first message
   if (messages.length === 1) {
@@ -399,7 +400,8 @@ async function sendMessage() {
     }
 
     // Save assistant message to Firestore
-    await addMessage(currentChatId, 'assistant', fullResponse);
+    const assistantMsgId = await addMessage(currentChatId, 'assistant', fullResponse, currentModelId);
+    assistantMessage.id = assistantMsgId;
 
     updateStatus('ready', 'Ready');
     console.log('[LLM] Generation complete');
@@ -451,19 +453,80 @@ function renderMessages() {
 function createMessageElement(message) {
   const div = document.createElement('div');
   div.className = `message ${message.role}`;
+  if (message.id) {
+    div.dataset.messageId = message.id;
+  }
 
   const avatar = document.createElement('div');
   avatar.className = 'message-avatar';
   avatar.textContent = message.role === 'user' ? 'U' : 'AI';
 
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'message-content-wrapper';
+
   const content = document.createElement('div');
   content.className = 'message-content';
   content.innerHTML = formatMessageContent(message.content);
 
+  contentWrapper.appendChild(content);
+
+  // Add feedback buttons for assistant messages
+  if (message.role === 'assistant' && message.id) {
+    const feedbackDiv = document.createElement('div');
+    feedbackDiv.className = 'message-feedback';
+
+    const thumbsUp = document.createElement('button');
+    thumbsUp.className = `feedback-btn ${message.feedback === 'up' ? 'active' : ''}`;
+    thumbsUp.dataset.feedback = 'up';
+    thumbsUp.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+    </svg>`;
+    thumbsUp.title = 'Good response';
+    thumbsUp.onclick = () => handleFeedback(message.id, 'up', thumbsUp, thumbsDown);
+
+    const thumbsDown = document.createElement('button');
+    thumbsDown.className = `feedback-btn ${message.feedback === 'down' ? 'active' : ''}`;
+    thumbsDown.dataset.feedback = 'down';
+    thumbsDown.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+    </svg>`;
+    thumbsDown.title = 'Poor response';
+    thumbsDown.onclick = () => handleFeedback(message.id, 'down', thumbsUp, thumbsDown);
+
+    feedbackDiv.appendChild(thumbsUp);
+    feedbackDiv.appendChild(thumbsDown);
+    contentWrapper.appendChild(feedbackDiv);
+  }
+
   div.appendChild(avatar);
-  div.appendChild(content);
+  div.appendChild(contentWrapper);
 
   return div;
+}
+
+/**
+ * Handle feedback button click
+ */
+async function handleFeedback(messageId, feedbackType, upBtn, downBtn) {
+  // Toggle feedback - if already selected, clear it
+  const currentFeedback = upBtn.classList.contains('active') ? 'up' :
+    downBtn.classList.contains('active') ? 'down' : null;
+
+  const newFeedback = currentFeedback === feedbackType ? null : feedbackType;
+
+  // Update UI immediately
+  upBtn.classList.toggle('active', newFeedback === 'up');
+  downBtn.classList.toggle('active', newFeedback === 'down');
+
+  // Save to Firestore
+  try {
+    await updateMessageFeedback(currentChatId, messageId, newFeedback);
+  } catch (err) {
+    console.error('[App] Failed to save feedback:', err);
+    // Revert UI on error
+    upBtn.classList.toggle('active', currentFeedback === 'up');
+    downBtn.classList.toggle('active', currentFeedback === 'down');
+  }
 }
 
 function formatMessageContent(content) {

@@ -84,15 +84,6 @@ body {
   color: var(--text-primary);
 }
 
-.privacy-badge {
-  font-size: 11px;
-  padding: 4px 8px;
-  background: var(--success);
-  color: white;
-  border-radius: 20px;
-  font-weight: 500;
-}
-
 .header-controls {
   display: flex;
   align-items: center;
@@ -350,6 +341,62 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 4px;
+}
+
+/* Message Content Wrapper */
+.message-content-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Message Feedback Buttons */
+.message-feedback {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.message:hover .message-feedback {
+  opacity: 1;
+}
+
+.message-feedback .feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.message-feedback .feedback-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.message-feedback .feedback-btn.active {
+  color: var(--primary);
+}
+
+.message-feedback .feedback-btn.active[data-feedback="up"] {
+  color: var(--success);
+}
+
+.message-feedback .feedback-btn.active[data-feedback="down"] {
+  color: var(--error);
+}
+
+.message-feedback .feedback-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Typing Indicator */
