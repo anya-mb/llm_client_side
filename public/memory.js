@@ -8,9 +8,9 @@ export const MODEL_CONTEXT_LIMITS = {
   'Qwen3-0.6B-q4f16_1-MLC': 4096,
   'Llama-3.2-1B-Instruct-q4f16_1-MLC': 8192,
   'SmolLM2-1.7B-Instruct-q4f16_1-MLC': 4096,
-  'Gemma-2-2b-it-q4f16_1-MLC': 4096,
+  'gemma-2-2b-it-q4f16_1-MLC': 4096,
   'Llama-3.2-3B-Instruct-q4f16_1-MLC': 8192,
-  'Phi-4-mini-instruct-q4f16_1-MLC': 8192
+  'Phi-3.5-mini-instruct-q4f16_1-MLC': 8192
 };
 
 // Summarization threshold (70% of context)

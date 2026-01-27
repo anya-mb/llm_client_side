@@ -90,9 +90,9 @@ const AVAILABLE_MODELS = [
   { id: 'Qwen3-0.6B-q4f16_1-MLC', name: 'Qwen3 0.6B (Fast)' },
   { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B' },
   { id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC', name: 'SmolLM2 1.7B' },
-  { id: 'Gemma-2-2b-it-q4f16_1-MLC', name: 'Gemma 2 2B' },
+  { id: 'gemma-2-2b-it-q4f16_1-MLC', name: 'Gemma 2 2B' },
   { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 3B' },
-  { id: 'Phi-4-mini-instruct-q4f16_1-MLC', name: 'Phi-4 Mini (Best)' }
+  { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', name: 'Phi-3.5 Mini (Best)' }
 ];
 
 // ============================================================================
