@@ -129,18 +129,19 @@ async function init() {
       await createNewChat();
     }
 
-    // Initialize LLM engine
-    updateLoadingStatus('Loading AI model...');
-    await initEngine();
-
     // Setup event listeners
     setupEventListeners();
 
-    // Hide loading screen
+    // Hide loading screen - show chat UI immediately
     elements.loadingScreen.classList.add('hidden');
 
-    // Enable input
+    // Enable typing while model loads
     elements.messageInput.disabled = false;
+
+    // Initialize LLM engine (progress shown in status bar)
+    await initEngine();
+
+    // Enable send button after model loads
     elements.sendBtn.disabled = false;
 
     console.log('[App] Initialization complete');
@@ -177,8 +178,6 @@ async function initEngine() {
         const percent = Math.round(progress.progress * 100);
         updateProgress(percent);
         updateStatus('loading', `Loading: ${percent}% - ${progress.text}`);
-        updateLoadingStatus(`Loading model: ${percent}%`);
-        elements.loadingSubtext.textContent = progress.text;
       },
       logLevel: 'INFO'
     });
