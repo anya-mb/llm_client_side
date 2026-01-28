@@ -1,205 +1,189 @@
 # Chat with LLM - 100% Private
 
-A fully client-side AI chat application that runs language models entirely in your browser. Your conversations never leave your device - all AI inference happens locally using WebGPU.
+A privacy-first AI chat application where **everything runs in your browser**. No servers process your prompts. No API keys required. No monthly fees.
+
+Your conversations stay on your device — the AI runs locally using WebGPU.
+
+## Why This Exists
+
+Every prompt you send to ChatGPT, Claude, or Gemini travels to someone else's servers. Your questions, your ideas, your code — stored, logged, potentially used for training.
+
+This project proves there's another way: **client-side AI inference** that keeps your data yours.
 
 ## Features
 
-### Privacy & Security
-- **100% Client-Side AI** - Models run entirely in your browser via WebLLM
-- **No Data to Servers** - Your prompts and conversations stay on your device
-- **Anonymous Authentication** - No email or personal info required
-- **Secure Cloud Sync** - Chat history synced via Firebase with user-only access
-
-### AI Capabilities
-- **6 Model Options** - From fast 0.6B to powerful 3.8B parameter models
-- **Smart Context Management** - Automatic summarization prevents context overflow
-- **Streaming Responses** - Watch AI generate responses in real-time
-- **Model Switching** - Change models on the fly
-
-### User Experience
-- **Chat History** - All conversations saved and synced
-- **Multiple Chats** - Create and manage separate conversations
-- **Dark/Light Mode** - Theme toggle for comfortable viewing
-- **Responsive Design** - Works on desktop and mobile
-- **Export Function** - Download your chat history as JSON
+| Category | What You Get |
+|----------|--------------|
+| **Privacy** | AI runs 100% in-browser via WebLLM. Prompts never leave your device. |
+| **Authentication** | Anonymous sign-in — no email, phone, or personal info required. |
+| **Sync** | Chat history syncs across devices via Firebase (your messages, not AI processing). |
+| **Models** | 6 LLMs from 0.6B to 3.8B parameters — pick speed or quality. |
+| **Context** | Smart summarization keeps conversations going beyond model limits. |
+| **UX** | Dark/light mode, multiple chats, export to JSON, streaming responses. |
 
 ## Available Models
 
-| Model | Size | Speed | Quality | Best For |
-|-------|------|-------|---------|----------|
-| Qwen3 0.6B | 0.6B | Fastest | Good | Quick responses |
-| Llama 3.2 1B | 1B | Very Fast | Better | Balanced |
-| SmolLM2 1.7B | 1.7B | Fast | Very Good | Code & Math |
-| Gemma 2 2B | 2B | Moderate | Very Good | Factual Q&A |
-| Llama 3.2 3B | 3B | Moderate | Excellent | Complex tasks |
-| Phi-4 Mini | 3.8B | Slower | Excellent | Reasoning |
+| Model | Size | Speed | Best For |
+|-------|------|-------|----------|
+| Qwen3 0.6B | 0.6B | Fastest | Quick Q&A, older hardware |
+| Llama 3.2 1B | 1B | Very Fast | Balanced everyday use |
+| SmolLM2 1.7B | 1.7B | Fast | Code and math |
+| Gemma 2 2B | 2B | Moderate | Factual accuracy |
+| Llama 3.2 3B | 3B | Moderate | Complex conversations |
+| Phi-3.5 Mini | 3.8B | Slower | Best reasoning |
 
-See [MODELS.md](MODELS.md) for detailed model information.
+See [MODELS.md](MODELS.md) for detailed specs and recommendations.
 
 ## Quick Start
 
-### Prerequisites
-- Modern browser with WebGPU support (Chrome 113+, Edge 113+, Safari 17.4+)
-- Firebase project (for cloud sync)
+### Requirements
+- Modern browser: Chrome 113+, Edge 113+, or Safari 17.4+
+- WebGPU support ([check here](https://webgpureport.org))
 
-### Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <repo-url>
-   cd llm_in_browser
-   ```
-
-2. **Configure Firebase**
-
-   Edit `public/firebase-config.js` and replace the placeholder values with your Firebase project config:
-   ```javascript
-   const firebaseConfig = {
-     apiKey: "YOUR_API_KEY",
-     authDomain: "ai-chat-in-your-tab.firebaseapp.com",
-     projectId: "ai-chat-in-your-tab",
-     storageBucket: "ai-chat-in-your-tab.firebasestorage.app",
-     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-     appId: "YOUR_APP_ID"
-   };
-   ```
-
-3. **Enable Firebase Services**
-
-   In Firebase Console:
-   - Enable **Authentication** > **Anonymous** sign-in
-   - Enable **Cloud Firestore**
-   - Deploy security rules: `firebase deploy --only firestore:rules`
-
-4. **Local Development**
-   ```bash
-   # Option 1: Python
-   cd public && python -m http.server 8000
-
-   # Option 2: Node.js
-   npx serve public
-
-   # Option 3: Firebase Emulator
-   firebase emulators:start
-   ```
-
-5. **Open in browser** at `http://localhost:8000`
-
-### Deploy to Firebase Hosting
+### Deploy Your Own (5 minutes)
 
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
+# Clone
+git clone <repo-url>
+cd llm_in_browser
 
-# Login to Firebase
-firebase login
+# Configure Firebase (see below)
+# Edit public/firebase-config.js with your credentials
 
 # Deploy
+npm install -g firebase-tools
+firebase login
 firebase deploy
 ```
+
+### Firebase Setup
+
+1. Create project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable **Authentication** → **Anonymous** sign-in
+3. Create **Firestore Database** in production mode
+4. Copy config to `public/firebase-config.js`:
+
+```javascript
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.firebasestorage.app",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+```
+
+5. Deploy: `firebase deploy`
+
+Full walkthrough: [Deployment Guide](medium_post/how_to_deploy_the_same_05.md)
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     YOUR BROWSER                        │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
+│  │   WebLLM    │───▶│   WebGPU    │───▶│  Response   │ │
+│  │  (Model)    │    │   (GPU)     │    │ (Streaming) │ │
+│  └─────────────┘    └─────────────┘    └─────────────┘ │
+│         │                                      │        │
+│         ▼                                      ▼        │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              Chat UI + History                   │   │
+│  └─────────────────────────────────────────────────┘   │
+│                          │                              │
+└──────────────────────────│──────────────────────────────┘
+                           │ (sync only)
+                           ▼
+                    ┌─────────────┐
+                    │  Firebase   │
+                    │ (Firestore) │
+                    └─────────────┘
+```
+
+**Key insight:** Firebase syncs your chat history, but your prompts are never processed by external servers. The LLM runs on your GPU.
 
 ## Project Structure
 
 ```
 llm_in_browser/
-├── public/                 # Static files for hosting
-│   ├── index.html         # Main HTML
-│   ├── app.js             # Main application logic
-│   ├── styles.css         # UI styles
-│   ├── memory.js          # Context management
-│   ├── firebase-config.js # Firebase initialization
-│   └── db.js              # Firestore operations
-├── firebase.json          # Firebase hosting config
-├── firestore.rules        # Security rules
-├── .firebaserc            # Project alias
-├── MODELS.md              # Model documentation
-└── README.md              # This file
+├── public/
+│   ├── index.html          # Main app
+│   ├── app.js              # Application logic + WebLLM
+│   ├── styles.css          # UI styling
+│   ├── memory.js           # Context management + summarization
+│   ├── firebase-config.js  # Your Firebase credentials
+│   └── db.js               # Firestore operations
+├── medium_post/            # Blog series (5 parts)
+├── firebase.json           # Hosting config + security headers
+├── firestore.rules         # Database security rules
+├── MODELS.md               # Detailed model documentation
+├── FIRESTORE_STRUCTURE.md  # Database schema
+├── SECURITY_REPORT.md      # Security audit findings
+└── how_to_deploy.md        # Deployment deep-dive
 ```
 
-## How It Works
+## Documentation
 
-### AI Inference
-1. On first use, the selected model is downloaded and compiled for WebGPU
-2. All inference runs in a Web Worker to keep the UI responsive
-3. Responses stream token-by-token for real-time feedback
-4. Models are cached in IndexedDB for fast subsequent loads
+| Document | Description |
+|----------|-------------|
+| [MODELS.md](MODELS.md) | Model specs, VRAM requirements, use cases |
+| [FIRESTORE_STRUCTURE.md](FIRESTORE_STRUCTURE.md) | Database schema and query patterns |
+| [SECURITY_REPORT.md](SECURITY_REPORT.md) | Security audit with findings and fixes |
+| [how_to_deploy.md](how_to_deploy.md) | Complete deployment guide |
 
-### Context Management
-1. Token usage is estimated for each conversation
-2. When approaching 70% of the model's context window:
-   - Older messages are summarized using the AI
-   - Summary is preserved as context
-   - Recent messages are kept verbatim
-3. This allows unlimited conversation length
+## Blog Series
 
-### Data Storage
-- **Local**: Messages cached in browser during session
-- **Cloud**: Synced to Firestore under user's anonymous ID
-- **Security**: Firestore rules ensure users only access their own data
+Learn how this project works in our 5-part series:
 
-## Configuration
+1. **[Project Overview](medium_post/llm_client_side_01.md)** — Why browser-based AI matters
+2. **[LLM Comparison](medium_post/llm_details_02.md)** — Choosing the right model
+3. **[Firebase Deep Dive](medium_post/firebase_details_03.md)** — Anonymous auth + Firestore
+4. **[Security Analysis](medium_post/security_details_04.md)** — Our audit findings
+5. **[Deployment Guide](medium_post/how_to_deploy_the_same_05.md)** — Step-by-step setup
 
-### Firebase Project
-- Project ID: `ai-chat-in-your-tab`
-- Required services: Authentication, Firestore, Hosting
+## Browser Support
 
-### Security Rules
-The included `firestore.rules` ensures:
-- Users can only read/write their own data
-- All other access is denied
-- Rules are enforced server-side
+| Browser | Version | Status |
+|---------|---------|--------|
+| Chrome | 113+ | Full support |
+| Edge | 113+ | Full support |
+| Safari | 17.4+ | Full support (macOS 14.4+) |
+| Firefox | 121+ | Requires flags |
 
-## Browser Requirements
-
-| Browser | Minimum Version |
-|---------|----------------|
-| Chrome | 113+ |
-| Edge | 113+ |
-| Safari | 17.4+ (macOS 14.4+) |
-| Firefox | 121+ (with flags) |
-
-Check WebGPU support: [webgpureport.org](https://webgpureport.org)
+Check WebGPU: [webgpureport.org](https://webgpureport.org)
 
 ## Troubleshooting
 
-### Model won't load
-- Verify WebGPU is supported in your browser
-- Check console for detailed error messages
-- Ensure enough disk space (~500MB-2GB per model)
-- Try a smaller model first
+| Issue | Solution |
+|-------|----------|
+| Model won't load | Check WebGPU support, try smaller model |
+| Slow generation | Use smaller model, close GPU-heavy apps |
+| Firebase errors | Verify config, enable Anonymous Auth |
+| "Permission denied" | Deploy Firestore rules: `firebase deploy --only firestore:rules` |
 
-### Slow performance
-- Use a smaller model (Qwen3 0.6B recommended for older hardware)
-- Close other GPU-intensive applications
-- Check GPU temperature for throttling
+## Tech Stack
 
-### Firebase errors
-- Verify Firebase config values are correct
-- Check that Anonymous Auth is enabled
-- Ensure Firestore is created in your project
-- Deploy security rules with `firebase deploy --only firestore:rules`
+- **[WebLLM](https://github.com/mlc-ai/web-llm)** — Browser-based LLM inference
+- **[WebGPU](https://www.w3.org/TR/webgpu/)** — GPU compute in browsers
+- **[Firebase](https://firebase.google.com)** — Auth, Firestore, Hosting
+- **[MLC-AI](https://mlc.ai/)** — Model compilation and quantization
 
-## Development
+## Cost
 
-### Local Testing with Emulators
-```bash
-firebase emulators:start
-```
-This runs local Auth and Firestore emulators.
-
-### Adding New Models
-1. Check model availability at [MLC-AI Models](https://huggingface.co/mlc-ai)
-2. Add model ID to `AVAILABLE_MODELS` in `app.js`
-3. Add context limit to `MODEL_CONTEXT_LIMITS` in `memory.js`
-4. Update `MODELS.md` documentation
-
-## Credits
-
-Built with:
-- [WebLLM](https://github.com/mlc-ai/web-llm) - Browser-based LLM inference
-- [Firebase](https://firebase.google.com) - Authentication, database, hosting
-- [MLC-AI](https://mlc.ai/) - Machine learning compilation
+| Usage | Monthly Cost |
+|-------|--------------|
+| Personal use | $0 (Firebase free tier) |
+| Heavy use | Pay-as-you-go (Firebase Blaze) |
+| AI inference | $0 (runs on your GPU) |
 
 ## License
 
-This project is open source. Model licenses apply from their respective providers (Meta, Google, Microsoft, Alibaba, Hugging Face).
+Open source. Model licenses apply from their respective providers (Meta, Google, Microsoft, Alibaba, Hugging Face).
+
+---
+
+**The future of AI isn't just more powerful models — it's who controls the compute.**
+
+With browser-based AI, the answer is: you do.
