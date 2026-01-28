@@ -22,6 +22,12 @@ import {
 
 import { getDb, getUserId } from './firebase-config.js';
 
+// Conditional logging
+const DEBUG = false;
+function log(...args) {
+  if (DEBUG) console.log(...args);
+}
+
 /**
  * Escape HTML to prevent XSS
  * @param {string} text - Text to escape
@@ -76,7 +82,7 @@ export async function createUserProfile() {
       createdAt: serverTimestamp(),
       lastActive: serverTimestamp()
     });
-    console.log('[DB] Created new user profile');
+    log('[DB] Created new user profile');
   } else {
     // Update last active
     await updateDoc(profileRef, {
@@ -104,7 +110,7 @@ export async function createChat(title = 'New Chat') {
     messageCount: 0
   });
 
-  console.log('[DB] Created chat:', chatDoc.id);
+  log('[DB] Created chat:', chatDoc.id);
   return chatDoc.id;
 }
 
@@ -197,7 +203,7 @@ export async function deleteChat(chatId) {
   batch.delete(chatRef);
 
   await batch.commit();
-  console.log('[DB] Deleted chat:', chatId);
+  log('[DB] Deleted chat:', chatId);
 }
 
 /**
@@ -257,7 +263,7 @@ export async function updateMessageFeedback(chatId, messageId, feedback) {
     feedback: feedback
   });
 
-  console.log('[DB] Updated feedback for message:', messageId, feedback);
+  log('[DB] Updated feedback for message:', messageId, feedback);
 }
 
 /**
@@ -301,7 +307,7 @@ export async function getMessages(chatId, maxMessages = 100) {
 export function subscribeToMessages(chatId, callback) {
   const userId = getUserId();
   if (!userId) {
-    console.warn('[DB] Cannot subscribe: User not authenticated');
+    log('[DB] Cannot subscribe: User not authenticated');
     return () => {};
   }
 
@@ -336,7 +342,7 @@ export function subscribeToMessages(chatId, callback) {
 export function subscribeToChats(callback) {
   const userId = getUserId();
   if (!userId) {
-    console.warn('[DB] Cannot subscribe: User not authenticated');
+    log('[DB] Cannot subscribe: User not authenticated');
     return () => {};
   }
 
@@ -380,7 +386,7 @@ export async function deleteAllUserData() {
   const profileRef = doc(db, 'users', userId, 'profile', 'info');
   await deleteDoc(profileRef);
 
-  console.log('[DB] Deleted all user data');
+  log('[DB] Deleted all user data');
 }
 
 /**

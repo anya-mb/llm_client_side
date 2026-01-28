@@ -3,6 +3,12 @@
  * Handles context window management and conversation summarization
  */
 
+// Conditional logging
+const DEBUG = false;
+function log(...args) {
+  if (DEBUG) console.log(...args);
+}
+
 // Model context limits (conservative estimates for 4-bit quantized models)
 export const MODEL_CONTEXT_LIMITS = {
   'Qwen3-0.6B-q4f16_1-MLC': 4096,
@@ -117,7 +123,7 @@ export async function prepareMessagesForContext(messages, modelId, summarizeFunc
   }
 
   // Need to summarize
-  console.log('[Memory] Context limit approaching, initiating summarization...');
+  log('[Memory] Context limit approaching, initiating summarization...');
 
   // Keep the most recent messages verbatim
   const recentMessages = messages.slice(-MIN_RECENT_MESSAGES);
@@ -149,7 +155,7 @@ export async function prepareMessagesForContext(messages, modelId, summarizeFunc
     ...recentMessages
   ];
 
-  console.log('[Memory] Summarization complete. Reduced from', messages.length, 'to', processedMessages.length, 'messages');
+  log('[Memory] Summarization complete. Reduced from', messages.length, 'to', processedMessages.length, 'messages');
 
   return {
     messages: processedMessages,

@@ -35,6 +35,34 @@ import {
 } from './memory.js';
 
 // ============================================================================
+// Configuration
+// ============================================================================
+
+const DEBUG = false; // Set to true for development logging
+const MAX_MESSAGE_LENGTH = 10000; // Maximum characters per message
+
+function log(...args) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
+
+// Rate limiter to prevent abuse
+const rateLimiter = {
+  lastMessageTime: 0,
+  minInterval: 1000, // 1 second minimum between messages
+
+  canSend() {
+    const now = Date.now();
+    if (now - this.lastMessageTime < this.minInterval) {
+      return false;
+    }
+    this.lastMessageTime = now;
+    return true;
+  }
+};
+
+// ============================================================================
 // State
 // ============================================================================
 
@@ -102,7 +130,7 @@ const AVAILABLE_MODELS = [
 // ============================================================================
 
 async function init() {
-  console.log('[App] Initializing...');
+  log('[App] Initializing...');
 
   try {
     // Initialize Firebase
@@ -146,7 +174,7 @@ async function init() {
     // Enable send button after model loads
     elements.sendBtn.disabled = false;
 
-    console.log('[App] Initialization complete');
+    log('[App] Initialization complete');
   } catch (error) {
     console.error('[App] Initialization error:', error);
     updateLoadingStatus('Error: ' + error.message, true);
@@ -166,11 +194,11 @@ function updateLoadingStatus(text, isError = false) {
 
 async function initEngine() {
   if (engine) {
-    console.log('[LLM] Engine already initialized');
+    log('[LLM] Engine already initialized');
     return engine;
   }
 
-  console.log('[LLM] Initializing engine with model:', currentModelId);
+  log('[LLM] Initializing engine with model:', currentModelId);
   updateStatus('loading', 'Loading model...');
   showProgress(true);
 
@@ -186,7 +214,7 @@ async function initEngine() {
 
     showProgress(false);
     updateStatus('ready', 'Ready');
-    console.log('[LLM] Model loaded successfully');
+    log('[LLM] Model loaded successfully');
     return engine;
   } catch (err) {
     console.error('[LLM] Failed to create engine:', err);
@@ -201,14 +229,14 @@ async function switchModel(newModelId) {
     return;
   }
 
-  console.log('[LLM] Switching model to:', newModelId);
+  log('[LLM] Switching model to:', newModelId);
 
   // Unload current engine
   if (engine) {
     try {
       await engine.unload();
     } catch (e) {
-      console.warn('[LLM] Error unloading engine:', e);
+      log('[LLM] Error unloading engine:', e);
     }
     engine = null;
   }
@@ -261,7 +289,7 @@ async function createNewChat() {
 async function loadChat(chatId) {
   if (chatId === currentChatId) return;
 
-  console.log('[App] Loading chat:', chatId);
+  log('[App] Loading chat:', chatId);
 
   // Unsubscribe from previous chat
   if (unsubscribeMessages) {
@@ -316,6 +344,17 @@ function subscribeToChatsUpdates() {
 async function sendMessage() {
   const text = elements.messageInput.value.trim();
   if (!text || isGenerating) return;
+
+  // Input validation
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    alert(`Message too long. Maximum ${MAX_MESSAGE_LENGTH.toLocaleString()} characters allowed.`);
+    return;
+  }
+
+  // Rate limiting
+  if (!rateLimiter.canSend()) {
+    return; // Silently ignore rapid sends
+  }
 
   // Disable input during generation
   isGenerating = true;
@@ -405,7 +444,7 @@ async function sendMessage() {
     assistantMessage.id = assistantMsgId;
 
     updateStatus('ready', 'Ready');
-    console.log('[LLM] Generation complete');
+    log('[LLM] Generation complete');
   } catch (err) {
     console.error('[LLM] Generation error:', err);
     hideTypingIndicator();
@@ -846,7 +885,7 @@ async function deleteCachedModel(cacheName) {
 
   try {
     await caches.delete(cacheName);
-    console.log('[Cache] Deleted cache:', cacheName);
+    log('[Cache] Deleted cache:', cacheName);
     await renderCachedModels();
   } catch (error) {
     console.error('[Cache] Error deleting cache:', error);
@@ -868,7 +907,7 @@ async function clearAllCachedModels() {
     );
 
     await Promise.all(modelCaches.map(name => caches.delete(name)));
-    console.log('[Cache] Cleared all model caches');
+    log('[Cache] Cleared all model caches');
     await renderCachedModels();
   } catch (error) {
     console.error('[Cache] Error clearing caches:', error);

@@ -186,6 +186,12 @@
   </div>
 
   <!-- Firebase SDK -->
+  <!--
+    SECURITY NOTE: Subresource Integrity (SRI)
+    SRI is not practical for ES modules loaded dynamically from CDNs like esm.run.
+    Security is provided by: CSP headers, HTTPS, and trusted CDN providers (gstatic.com).
+    For maximum security, consider bundling dependencies locally.
+  -->
   <script type="module" src="firebase-config.js"></script>
   <script type="module" src="db.js"></script>
   <script type="module" src="memory.js"></script>

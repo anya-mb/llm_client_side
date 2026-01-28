@@ -2,22 +2,60 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions for validation
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidMessageContent(content) {
+      return content is string && content.size() > 0 && content.size() <= 10000;
+    }
+
+    function isValidMessageRole(role) {
+      return role in ['user', 'assistant', 'system'];
+    }
+
+    function isValidChatTitle(title) {
+      return title is string && title.size() > 0 && title.size() <= 200;
+    }
+
+    function isValidFeedback(feedback) {
+      return feedback == null || feedback in ['up', 'down'];
+    }
+
     // Users can only read and write their own data
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
 
       // User profile
       match /profile/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
 
       // User's chats
       match /chats/{chatId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidChatTitle(request.resource.data.title);
+        allow update: if isOwner(userId)
+          && (!('title' in request.resource.data) || isValidChatTitle(request.resource.data.title));
+        allow delete: if isOwner(userId);
 
         // Messages within a chat
         match /messages/{messageId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+            && isValidMessageContent(request.resource.data.content)
+            && isValidMessageRole(request.resource.data.role);
+          allow update: if isOwner(userId)
+            && (!('content' in request.resource.data) || request.resource.data.content == resource.data.content)
+            && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+            && (!('feedback' in request.resource.data) || isValidFeedback(request.resource.data.feedback));
+          allow delete: if isOwner(userId);
         }
       }
     }
