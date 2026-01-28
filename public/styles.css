@@ -849,3 +849,80 @@ body {
 .connection-status.offline {
   color: var(--error);
 }
+
+/* Cached Models Section */
+.cached-models-container {
+  margin-bottom: 12px;
+}
+
+.cached-models-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+.cached-models-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.cached-model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.cached-model-item:last-child {
+  margin-bottom: 0;
+}
+
+.cached-model-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cached-model-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cached-model-size {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.cached-model-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.cached-model-delete:hover {
+  background: var(--error);
+  color: white;
+}
+
+.cached-model-delete svg {
+  width: 16px;
+  height: 16px;
+}

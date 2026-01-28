@@ -79,7 +79,9 @@ const elements = {
   clearChatBtn: document.getElementById('clearChatBtn'),
   deleteAllBtn: document.getElementById('deleteAllBtn'),
   userIdDisplay: document.getElementById('userIdDisplay'),
-  connectionStatus: document.getElementById('connectionStatus')
+  connectionStatus: document.getElementById('connectionStatus'),
+  cachedModelsContainer: document.getElementById('cachedModelsContainer'),
+  clearAllModelsBtn: document.getElementById('clearAllModelsBtn')
 };
 
 // ============================================================================
@@ -719,6 +721,162 @@ async function deleteAllData() {
 }
 
 // ============================================================================
+// Cached Models Management
+// ============================================================================
+
+/**
+ * Get all cached model caches from the browser
+ * web-llm uses Cache API with cache names containing model IDs
+ */
+async function getCachedModels() {
+  try {
+    const cacheNames = await caches.keys();
+    // Filter for web-llm model caches (they typically contain 'webllm' or model patterns)
+    const modelCaches = cacheNames.filter(name =>
+      name.includes('webllm') ||
+      AVAILABLE_MODELS.some(model => name.includes(model.id))
+    );
+
+    const modelsWithSize = await Promise.all(modelCaches.map(async (cacheName) => {
+      try {
+        const cache = await caches.open(cacheName);
+        const keys = await cache.keys();
+        let totalSize = 0;
+
+        // Estimate size from cache entries
+        for (const request of keys) {
+          try {
+            const response = await cache.match(request);
+            if (response) {
+              const blob = await response.clone().blob();
+              totalSize += blob.size;
+            }
+          } catch (e) {
+            // Skip entries that can't be read
+          }
+        }
+
+        // Extract model name from cache name
+        let displayName = cacheName;
+        for (const model of AVAILABLE_MODELS) {
+          if (cacheName.includes(model.id)) {
+            displayName = model.name;
+            break;
+          }
+        }
+
+        return {
+          cacheName,
+          displayName,
+          size: totalSize,
+          entryCount: keys.length
+        };
+      } catch (e) {
+        return {
+          cacheName,
+          displayName: cacheName,
+          size: 0,
+          entryCount: 0
+        };
+      }
+    }));
+
+    return modelsWithSize.filter(m => m.entryCount > 0);
+  } catch (error) {
+    console.error('[Cache] Error getting cached models:', error);
+    return [];
+  }
+}
+
+/**
+ * Format bytes to human readable string
+ */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * Render the cached models list in settings
+ */
+async function renderCachedModels() {
+  elements.cachedModelsContainer.innerHTML = '<div class="cached-models-loading">Loading...</div>';
+
+  const models = await getCachedModels();
+
+  if (models.length === 0) {
+    elements.cachedModelsContainer.innerHTML = '<div class="cached-models-empty">No cached models</div>';
+    return;
+  }
+
+  elements.cachedModelsContainer.innerHTML = models.map(model => `
+    <div class="cached-model-item" data-cache-name="${escapeHtml(model.cacheName)}">
+      <div class="cached-model-info">
+        <div class="cached-model-name">${escapeHtml(model.displayName)}</div>
+        <div class="cached-model-size">${formatBytes(model.size)}</div>
+      </div>
+      <button class="cached-model-delete" title="Delete this model">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        </svg>
+      </button>
+    </div>
+  `).join('');
+
+  // Add click handlers for delete buttons
+  elements.cachedModelsContainer.querySelectorAll('.cached-model-delete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const item = e.target.closest('.cached-model-item');
+      const cacheName = item.dataset.cacheName;
+      await deleteCachedModel(cacheName);
+    });
+  });
+}
+
+/**
+ * Delete a specific cached model
+ */
+async function deleteCachedModel(cacheName) {
+  const modelName = AVAILABLE_MODELS.find(m => cacheName.includes(m.id))?.name || cacheName;
+
+  if (!confirm(`Delete cached model "${modelName}"?`)) return;
+
+  try {
+    await caches.delete(cacheName);
+    console.log('[Cache] Deleted cache:', cacheName);
+    await renderCachedModels();
+  } catch (error) {
+    console.error('[Cache] Error deleting cache:', error);
+    alert('Failed to delete cached model');
+  }
+}
+
+/**
+ * Clear all cached models
+ */
+async function clearAllCachedModels() {
+  if (!confirm('Delete ALL cached models? You will need to re-download them.')) return;
+
+  try {
+    const cacheNames = await caches.keys();
+    const modelCaches = cacheNames.filter(name =>
+      name.includes('webllm') ||
+      AVAILABLE_MODELS.some(model => name.includes(model.id))
+    );
+
+    await Promise.all(modelCaches.map(name => caches.delete(name)));
+    console.log('[Cache] Cleared all model caches');
+    await renderCachedModels();
+  } catch (error) {
+    console.error('[Cache] Error clearing caches:', error);
+    alert('Failed to clear cached models');
+  }
+}
+
+// ============================================================================
 // Event Listeners
 // ============================================================================
 
@@ -749,12 +907,16 @@ function setupEventListeners() {
   elements.newChatBtn.addEventListener('click', createNewChat);
 
   // Settings
-  elements.settingsBtn.addEventListener('click', openSettings);
+  elements.settingsBtn.addEventListener('click', () => {
+    openSettings();
+    renderCachedModels();
+  });
   elements.closeSettingsBtn.addEventListener('click', closeSettings);
   elements.themeToggle.addEventListener('click', toggleTheme);
   elements.exportBtn.addEventListener('click', exportChat);
   elements.clearChatBtn.addEventListener('click', clearCurrentChat);
   elements.deleteAllBtn.addEventListener('click', deleteAllData);
+  elements.clearAllModelsBtn.addEventListener('click', clearAllCachedModels);
 
   // Overlay
   elements.overlay.addEventListener('click', () => {
