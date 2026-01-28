@@ -22,7 +22,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' https://www.gstatic.com https://esm.run 'wasm-unsafe-eval'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://huggingface.co https://raw.githubusercontent.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; frame-ancestors 'none'"
+            "value": "default-src 'self'; script-src 'self' https://www.gstatic.com https://esm.run https://www.googletagmanager.com https://cdn.jsdelivr.net 'wasm-unsafe-eval'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://huggingface.co https://raw.githubusercontent.com wss://*.firebaseio.com https://www.gstatic.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; frame-ancestors 'none'"
           },
           {
             "key": "X-Content-Type-Options",
