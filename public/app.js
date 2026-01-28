@@ -577,19 +577,15 @@ async function handleFeedback(messageId, feedbackType, upBtn, downBtn) {
 }
 
 function formatMessageContent(content) {
-  // Escape HTML first
-  let formatted = escapeHtml(content);
+  // Configure marked for safe, readable output
+  marked.setOptions({
+    breaks: true,      // Convert \n to <br>
+    gfm: true,         // GitHub Flavored Markdown
+    headerIds: false,  // Don't add IDs to headers
+  });
 
-  // Convert code blocks
-  formatted = formatted.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-
-  // Convert inline code
-  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Convert line breaks
-  formatted = formatted.replace(/\n/g, '<br>');
-
-  return formatted;
+  // Parse markdown and return HTML
+  return marked.parse(content);
 }
 
 function updateLastMessage(content) {
