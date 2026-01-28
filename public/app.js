@@ -40,6 +40,7 @@ import {
 
 const DEBUG = false; // Set to true for development logging
 const MAX_MESSAGE_LENGTH = 10000; // Maximum characters per message
+const MODEL_STORAGE_KEY = 'selectedModel';
 
 function log(...args) {
   if (DEBUG) {
@@ -67,13 +68,15 @@ const rateLimiter = {
 // ============================================================================
 
 let engine = null;
-let currentModelId = 'Qwen3-0.6B-q4f16_1-MLC';
+let currentModelId = localStorage.getItem(MODEL_STORAGE_KEY) || 'Qwen3-0.6B-q4f16_1-MLC';
 let currentChatId = null;
 let messages = [];
 let isGenerating = false;
 let contextManager = createContextManager(currentModelId);
 let unsubscribeMessages = null;
 let unsubscribeChats = null;
+let chatListClickHandler = null;
+let cachedModelsClickHandler = null;
 
 // ============================================================================
 // DOM Elements
@@ -162,6 +165,9 @@ async function init() {
     // Setup event listeners
     setupEventListeners();
 
+    // Setup cleanup handlers for page unload
+    setupCleanupHandlers();
+
     // Hide loading screen - show chat UI immediately
     elements.loadingScreen.classList.add('hidden');
 
@@ -242,6 +248,7 @@ async function switchModel(newModelId) {
   }
 
   currentModelId = newModelId;
+  localStorage.setItem(MODEL_STORAGE_KEY, newModelId);
   contextManager.setModel(newModelId);
 
   // Load new model
@@ -643,9 +650,19 @@ function renderChatList(chats) {
       <span class="chat-list-item-time">${timeStr}</span>
     `;
 
-    item.addEventListener('click', () => loadChat(chat.id));
     elements.chatList.appendChild(item);
   });
+
+  // Setup event delegation (only once)
+  if (!chatListClickHandler) {
+    chatListClickHandler = (e) => {
+      const item = e.target.closest('.chat-list-item');
+      if (item && item.dataset.chatId) {
+        loadChat(item.dataset.chatId);
+      }
+    };
+    elements.chatList.addEventListener('click', chatListClickHandler);
+  }
 }
 
 function formatTime(date) {
@@ -787,8 +804,14 @@ async function getCachedModels() {
           try {
             const response = await cache.match(request);
             if (response) {
-              const blob = await response.clone().blob();
-              totalSize += blob.size;
+              // Prefer Content-Length header to avoid blob creation
+              const contentLength = response.headers.get('Content-Length');
+              if (contentLength) {
+                totalSize += parseInt(contentLength, 10);
+              } else {
+                const blob = await response.clone().blob();
+                totalSize += blob.size;
+              }
             }
           } catch (e) {
             // Skip entries that can't be read
@@ -864,15 +887,6 @@ async function renderCachedModels() {
       </button>
     </div>
   `).join('');
-
-  // Add click handlers for delete buttons
-  elements.cachedModelsContainer.querySelectorAll('.cached-model-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const item = e.target.closest('.cached-model-item');
-      const cacheName = item.dataset.cacheName;
-      await deleteCachedModel(cacheName);
-    });
-  });
 }
 
 /**
@@ -913,6 +927,36 @@ async function clearAllCachedModels() {
     console.error('[Cache] Error clearing caches:', error);
     alert('Failed to clear cached models');
   }
+}
+
+// ============================================================================
+// Cleanup Handlers
+// ============================================================================
+
+function setupCleanupHandlers() {
+  window.addEventListener('beforeunload', () => {
+    // Cleanup subscriptions
+    if (unsubscribeMessages) {
+      unsubscribeMessages();
+      unsubscribeMessages = null;
+    }
+    if (unsubscribeChats) {
+      unsubscribeChats();
+      unsubscribeChats = null;
+    }
+
+    // Unload LLM engine
+    if (engine) {
+      engine.unload().catch(() => {});
+      engine = null;
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    // Same cleanup for mobile browsers
+    if (unsubscribeMessages) unsubscribeMessages();
+    if (unsubscribeChats) unsubscribeChats();
+  });
 }
 
 // ============================================================================
@@ -967,6 +1011,26 @@ function setupEventListeners() {
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+
+  // Load saved model selection
+  const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
+  if (savedModel && elements.modelSelect.querySelector(`option[value="${savedModel}"]`)) {
+    elements.modelSelect.value = savedModel;
+  }
+
+  // Setup event delegation for cached models delete buttons (only once)
+  if (!cachedModelsClickHandler) {
+    cachedModelsClickHandler = async (e) => {
+      const btn = e.target.closest('.cached-model-delete');
+      if (btn) {
+        const item = btn.closest('.cached-model-item');
+        if (item && item.dataset.cacheName) {
+          await deleteCachedModel(item.dataset.cacheName);
+        }
+      }
+    };
+    elements.cachedModelsContainer.addEventListener('click', cachedModelsClickHandler);
   }
 
   // Handle online/offline status
